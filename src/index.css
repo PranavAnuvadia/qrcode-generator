@@ -1,1 +1,35 @@
 @import "tailwindcss";
+
+/* Developer credit - Minecraft style */
+.developer-credit {
+    position: fixed;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.7rem;
+    color: #aaaaaa;
+    text-shadow: 2px 2px #000000;
+    z-index: 1000;
+    cursor: default;
+    padding: 0.5rem 1rem;
+    background-color: rgba(0, 0, 0, 0.3);
+    border: 2px solid #555555;
+    border-radius: 4px;
+    white-space: nowrap;
+    transition: all 0.3s ease;
+}
+
+.developer-credit:hover {
+    transform: translateX(-50%) scale(1.1);
+    color: #ffffff;
+    border-color: #888888;
+}
+
+@media (max-width: 480px) {
+    .developer-credit {
+        font-size: 0.6rem;
+        top: 1rem;
+        padding: 0.4rem 0.8rem;
+    }
+}

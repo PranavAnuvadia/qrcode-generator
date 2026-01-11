@@ -94,7 +94,7 @@ const QRCodeGenerator = () => {
   const [qrData, setQrData] = useState('');
   const [copied, setCopied] = useState(false);
   const qrContainerRef = useRef(null);
-  
+
   // Form states for different types
   const [urlInput, setUrlInput] = useState('');
   const [textInput, setTextInput] = useState('');
@@ -137,15 +137,15 @@ const QRCodeGenerator = () => {
 
   const createQR = (text) => {
     if (!qrContainerRef.current) return;
-    
+
     try {
       // Clear previous QR code
       qrContainerRef.current.innerHTML = '';
-      
+
       // Create canvas element
       const canvas = document.createElement('canvas');
       qrContainerRef.current.appendChild(canvas);
-      
+
       // Generate QR code
       const qr = new window.QRious({
         element: canvas,
@@ -155,12 +155,12 @@ const QRCodeGenerator = () => {
         foreground: 'black',
         level: 'M'
       });
-      
+
       // Style the canvas
       canvas.className = 'w-full h-auto rounded-xl shadow-lg bg-white';
       canvas.style.maxWidth = '300px';
       canvas.style.height = 'auto';
-      
+
     } catch (error) {
       console.error('Error creating QR code:', error);
       generateFallbackQR(text);
@@ -169,10 +169,10 @@ const QRCodeGenerator = () => {
 
   const generateFallbackQR = (text) => {
     if (!qrContainerRef.current) return;
-    
+
     // Clear previous content
     qrContainerRef.current.innerHTML = '';
-    
+
     // Create img element for fallback
     const img = document.createElement('img');
     const encodedData = encodeURIComponent(text);
@@ -181,19 +181,19 @@ const QRCodeGenerator = () => {
     img.className = 'w-full h-auto rounded-xl shadow-lg bg-white p-4';
     img.style.maxWidth = '300px';
     img.style.height = 'auto';
-    
+
     // Add error handling for the fallback image
     img.onerror = () => {
       // If Google Charts also fails, try QR Server API
       img.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodedData}&format=png&margin=10`;
     };
-    
+
     qrContainerRef.current.appendChild(img);
   };
 
   const formatUrl = (url) => {
     if (!url.trim()) return '';
-    
+
     // Add protocol if missing
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       return 'https://' + url;
@@ -216,7 +216,7 @@ END:VCARD`;
 
   useEffect(() => {
     let data = '';
-    
+
     switch (activeTab) {
       case 'url':
         data = formatUrl(urlInput);
@@ -232,17 +232,17 @@ END:VCARD`;
       default:
         data = '';
     }
-    
+
     setQrData(data);
     generateQRCode(data);
   }, [activeTab, urlInput, textInput, contactInfo]);
 
   const downloadQRCode = () => {
     if (!qrData) return;
-    
+
     const canvas = qrContainerRef.current?.querySelector('canvas');
     const img = qrContainerRef.current?.querySelector('img');
-    
+
     if (canvas) {
       // Download from canvas
       const link = document.createElement('a');
@@ -294,7 +294,10 @@ END:VCARD`;
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 p-4 pt-24">
+      <div className="developer-credit">
+        By Pranav Anuvadia
+      </div>
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl mb-4">
@@ -316,11 +319,10 @@ END:VCARD`;
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 text-sm font-medium transition-all duration-200 ${
-                      activeTab === tab.id
-                        ? 'text-purple-600 border-b-2 border-purple-600 bg-purple-50'
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                    }`}
+                    className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 text-sm font-medium transition-all duration-200 ${activeTab === tab.id
+                      ? 'text-purple-600 border-b-2 border-purple-600 bg-purple-50'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                      }`}
                   >
                     <IconComponent className="w-4 h-4" />
                     {tab.label}
@@ -386,7 +388,7 @@ END:VCARD`;
                         <input
                           type="text"
                           value={contactInfo.firstName}
-                          onChange={(e) => setContactInfo({...contactInfo, firstName: e.target.value})}
+                          onChange={(e) => setContactInfo({ ...contactInfo, firstName: e.target.value })}
                           placeholder={t('firstNamePlaceholder')}
                           className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                         />
@@ -398,13 +400,13 @@ END:VCARD`;
                         <input
                           type="text"
                           value={contactInfo.lastName}
-                          onChange={(e) => setContactInfo({...contactInfo, lastName: e.target.value})}
+                          onChange={(e) => setContactInfo({ ...contactInfo, lastName: e.target.value })}
                           placeholder={t('lastNamePlaceholder')}
                           className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                         />
                       </div>
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         {t('phoneNumber')}
@@ -412,12 +414,12 @@ END:VCARD`;
                       <input
                         type="tel"
                         value={contactInfo.phone}
-                        onChange={(e) => setContactInfo({...contactInfo, phone: e.target.value})}
+                        onChange={(e) => setContactInfo({ ...contactInfo, phone: e.target.value })}
                         placeholder={t('phonePlaceholder')}
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         {t('emailAddress')}
@@ -425,12 +427,12 @@ END:VCARD`;
                       <input
                         type="email"
                         value={contactInfo.email}
-                        onChange={(e) => setContactInfo({...contactInfo, email: e.target.value})}
+                        onChange={(e) => setContactInfo({ ...contactInfo, email: e.target.value })}
                         placeholder={t('emailPlaceholder')}
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         {t('organization')}
@@ -438,12 +440,12 @@ END:VCARD`;
                       <input
                         type="text"
                         value={contactInfo.organization}
-                        onChange={(e) => setContactInfo({...contactInfo, organization: e.target.value})}
+                        onChange={(e) => setContactInfo({ ...contactInfo, organization: e.target.value })}
                         placeholder={t('organizationPlaceholder')}
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         {t('website')}
@@ -451,7 +453,7 @@ END:VCARD`;
                       <input
                         type="url"
                         value={contactInfo.url}
-                        onChange={(e) => setContactInfo({...contactInfo, url: e.target.value})}
+                        onChange={(e) => setContactInfo({ ...contactInfo, url: e.target.value })}
                         placeholder={t('websitePlaceholder')}
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                       />
@@ -470,7 +472,7 @@ END:VCARD`;
               {/* QR Code Display Section */}
               <div className="flex flex-col items-center space-y-6">
                 <h2 className="text-2xl font-semibold text-gray-800">{t('generatedQrCode')}</h2>
-                
+
                 <div className="bg-gray-50 rounded-2xl p-8 w-full max-w-sm">
                   {qrData ? (
                     <div className="text-center">
@@ -500,7 +502,7 @@ END:VCARD`;
                       <Download className="w-4 h-4" />
                       {t('download')}
                     </button>
-                    
+
                     <button
                       onClick={copyToClipboard}
                       className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all duration-200 font-medium"
