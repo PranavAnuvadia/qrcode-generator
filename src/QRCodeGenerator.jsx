@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { QrCode, Link, MessageSquare, User, Download, Copy, Check, History, Palette, Image as ImageIcon, Trash2, X, RefreshCw, ChevronRight } from 'lucide-react';
+import { QrCode, Link, MessageSquare, User, Download, Copy, Check, History, Palette, Image as ImageIcon, Trash2, X, RefreshCw, ChevronRight, Hash } from 'lucide-react';
 
 const TRANSLATIONS = {
   "en-US": {
@@ -32,8 +32,8 @@ const TRANSLATIONS = {
     "copied": "Copied!",
     "qrCodeData": "Encoded Data",
     "footerText": "Secure • Client-side • High Fidelity",
-    "colors": "Brand Colors",
-    "foreground": "Pattern",
+    "colors": "Custom Colors",
+    "foreground": "Foreground",
     "background": "Background",
     "logo": "Branding",
     "uploadLogo": "Add Logo",
@@ -45,6 +45,83 @@ const TRANSLATIONS = {
 };
 
 const t = (key) => TRANSLATIONS["en-US"][key] || key;
+
+const PRESET_COLORS = [
+  '#000000', '#0F172A', '#1E40AF', '#B91C1C', '#047857', 
+  '#7C3AED', '#DB2777', '#EA580C', '#FFFFFF', '#F1F5F9'
+];
+
+const ColorPicker = ({ label, color, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="flex-1 space-y-3" ref={containerRef}>
+      <label className="text-xs font-bold text-slate-400 block">{label}</label>
+      <div className="relative">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-full flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200 hover:border-slate-400 transition-all shadow-sm group"
+        >
+          <div 
+            className="w-8 h-8 rounded-lg shadow-inner border border-slate-100" 
+            style={{ backgroundColor: color }}
+          />
+          <div className="flex-1 text-left">
+            <span className="text-xs font-mono font-bold text-slate-600 group-hover:text-slate-900">{color.toUpperCase()}</span>
+          </div>
+        </button>
+
+        {isOpen && (
+          <div className="absolute z-50 top-full mt-3 left-0 w-64 bg-white rounded-2xl border border-slate-200 shadow-2xl p-4 animate-in zoom-in duration-200 origin-top-left">
+            <div className="grid grid-cols-5 gap-2 mb-4">
+              {PRESET_COLORS.map((pColor) => (
+                <button
+                  key={pColor}
+                  onClick={() => { onChange(pColor); setIsOpen(false); }}
+                  className={`w-full aspect-square rounded-lg border-2 transition-all ${color === pColor ? 'border-slate-900 scale-110 shadow-md' : 'border-transparent hover:scale-105'}`}
+                  style={{ backgroundColor: pColor }}
+                />
+              ))}
+            </div>
+            
+            <div className="pt-4 border-t border-slate-100">
+              <div className="flex items-center gap-2 mb-2">
+                <Hash size={12} className="text-slate-400" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Custom Hex</span>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={color}
+                  onChange={(e) => onChange(e.target.value)}
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono focus:border-slate-900 outline-none"
+                  placeholder="#000000"
+                />
+                <input
+                  type="color"
+                  value={color}
+                  onChange={(e) => onChange(e.target.value)}
+                  className="w-10 h-10 p-0 border-none bg-transparent cursor-pointer"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const QRCodeGenerator = () => {
   const [activeTab, setActiveTab] = useState('url');
@@ -134,7 +211,6 @@ const QRCodeGenerator = () => {
     }
   };
 
-  // Immediate QR generation effect
   useEffect(() => {
     let data = '';
     if (activeTab === 'url') {
@@ -152,7 +228,6 @@ const QRCodeGenerator = () => {
     generateQRCode(data);
   }, [activeTab, urlInput, textInput, contactInfo, fgColor, bgColor, logo]);
 
-  // Debounced history recording effect
   useEffect(() => {
     if (!qrData || !qrData.trim() || activeTab === 'history') return;
 
@@ -306,36 +381,14 @@ const QRCodeGenerator = () => {
             </section>
 
             <section className="grid sm:grid-cols-2 gap-6">
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative">
                 <div className="flex items-center gap-2 mb-6">
                   <Palette size={16} className="text-slate-400" />
                   <h3 className="text-sm font-bold uppercase tracking-wider text-slate-700">{t('colors')}</h3>
                 </div>
-                <div className="flex items-center gap-8">
-                  <div className="flex-1 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-slate-400">{t('foreground')}</label>
-                      <span className="text-[10px] font-mono text-slate-300 uppercase">{fgColor}</span>
-                    </div>
-                    <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border border-slate-100">
-                      <input type="color" value={fgColor} onChange={(e) => setFgColor(e.target.value)} className="w-10 h-10 border-none cursor-pointer bg-transparent" />
-                      <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
-                         <div className="h-full" style={{backgroundColor: fgColor, width: '100%'}}></div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex-1 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-slate-400">{t('background')}</label>
-                      <span className="text-[10px] font-mono text-slate-300 uppercase">{bgColor}</span>
-                    </div>
-                    <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border border-slate-100">
-                      <input type="color" value={bgColor} onChange={(e) => setBgColor(e.target.value)} className="w-10 h-10 border-none cursor-pointer bg-transparent" />
-                      <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
-                         <div className="h-full" style={{backgroundColor: bgColor, width: '100%'}}></div>
-                      </div>
-                    </div>
-                  </div>
+                <div className="flex flex-col sm:flex-row items-center gap-6">
+                  <ColorPicker label={t('foreground')} color={fgColor} onChange={setFgColor} />
+                  <ColorPicker label={t('background')} color={bgColor} onChange={setBgColor} />
                 </div>
               </div>
 
