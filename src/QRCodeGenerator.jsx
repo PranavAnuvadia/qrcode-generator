@@ -75,7 +75,7 @@ const QRCodeGenerator = () => {
   }, [history]);
 
   const addToHistory = (data, type) => {
-    if (!data.trim()) return;
+    if (!data || !data.trim()) return;
     setHistory(prev => {
       const filtered = prev.filter(item => item.data !== data);
       return [{ data, type, timestamp: Date.now() }, ...filtered].slice(0, 8);
@@ -83,7 +83,7 @@ const QRCodeGenerator = () => {
   };
 
   const generateQRCode = async (text) => {
-    if (!text.trim()) {
+    if (!text || !text.trim()) {
       if (qrContainerRef.current) qrContainerRef.current.innerHTML = '';
       return;
     }
@@ -134,22 +134,34 @@ const QRCodeGenerator = () => {
     }
   };
 
+  // Immediate QR generation effect
   useEffect(() => {
     let data = '';
-    let type = activeTab;
-    if (activeTab === 'url') data = (urlInput.trim() && !urlInput.startsWith('http')) ? 'https://' + urlInput : urlInput;
-    else if (activeTab === 'text') data = textInput;
-    else if (activeTab === 'contact' && (contactInfo.firstName || contactInfo.phone)) {
+    if (activeTab === 'url') {
+      data = (urlInput.trim() && !urlInput.startsWith('http')) ? 'https://' + urlInput : urlInput;
+    } else if (activeTab === 'text') {
+      data = textInput;
+    } else if (activeTab === 'contact' && (contactInfo.firstName || contactInfo.phone)) {
       const c = contactInfo;
       data = `BEGIN:VCARD\nVERSION:3.0\nFN:${c.firstName} ${c.lastName}\nTEL:${c.phone}\nEMAIL:${c.email}\nEND:VCARD`;
     }
     
     if (data !== qrData) {
       setQrData(data);
-      if (data) addToHistory(data, type);
     }
     generateQRCode(data);
   }, [activeTab, urlInput, textInput, contactInfo, fgColor, bgColor, logo]);
+
+  // Debounced history recording effect
+  useEffect(() => {
+    if (!qrData || !qrData.trim() || activeTab === 'history') return;
+
+    const timeoutId = setTimeout(() => {
+      addToHistory(qrData, activeTab);
+    }, 1500);
+
+    return () => clearTimeout(timeoutId);
+  }, [qrData]);
 
   const handleLogoUpload = (e) => {
     const file = e.target.files[0];
