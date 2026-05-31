@@ -1,93 +1,51 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { QrCode, Link, MessageSquare, User, Download, Copy, Check } from 'lucide-react';
+import { QrCode, Link, MessageSquare, User, Download, Copy, Check, History, Palette, Image as ImageIcon, Trash2 } from 'lucide-react';
 
 const TRANSLATIONS = {
   "en-US": {
-    "appTitle": "QR Code Generator",
-    "appDescription": "Generate QR codes for URLs, text, and contact information",
+    "appTitle": "QR Generator",
+    "appDescription": "Simple, clean QR code generation",
     "urlTab": "URL",
     "textTab": "Text",
     "contactTab": "Contact",
-    "enterUrl": "Enter URL",
-    "enterText": "Enter Text",
-    "contactInformation": "Contact Information",
-    "websiteUrl": "Website URL",
-    "urlPlaceholder": "example.com or https://example.com",
-    "urlHelp": "Enter a website URL. If you don't include http://, we'll add https:// automatically.",
-    "textContent": "Text Content",
-    "textPlaceholder": "Enter any text to generate QR code...",
+    "historyTab": "History",
+    "enterUrl": "Website URL",
+    "enterText": "Text Content",
+    "contactInformation": "Contact Info",
+    "websiteUrl": "URL",
+    "urlPlaceholder": "example.com",
+    "urlHelp": "Auto-prefixes https:// if missing.",
+    "textContent": "Text",
+    "textPlaceholder": "Enter text...",
     "firstName": "First Name",
-    "firstNamePlaceholder": "John",
     "lastName": "Last Name",
-    "lastNamePlaceholder": "Doe",
-    "phoneNumber": "Phone Number",
-    "phonePlaceholder": "+1 (555) 123-4567",
-    "emailAddress": "Email Address",
-    "emailPlaceholder": "john.doe@example.com",
-    "organization": "Organization",
-    "organizationPlaceholder": "Company Name",
+    "phoneNumber": "Phone",
+    "emailAddress": "Email",
+    "organization": "Company",
     "website": "Website",
-    "websitePlaceholder": "https://example.com",
-    "clearAllFields": "Clear All Fields",
-    "generatedQrCode": "Generated QR Code",
-    "scanQrCode": "Scan this QR code with your device",
-    "fillFormPrompt": "Fill in the form to generate your QR code",
+    "clearAllFields": "Reset",
+    "generatedQrCode": "Result",
+    "scanQrCode": "Scan me",
+    "fillFormPrompt": "Enter data to generate",
     "download": "Download",
-    "copyData": "Copy Data",
+    "copyData": "Copy",
     "copied": "Copied!",
-    "qrCodeData": "QR Code Data:",
-    "footerText": "Generate QR codes instantly • No data stored • Free to use",
-    "qrCodeAlt": "Generated QR Code"
-  },
-  "es-ES": {
-    "appTitle": "Generador de Códigos QR",
-    "appDescription": "Genera códigos QR para URLs, texto e información de contacto",
-    "urlTab": "URL",
-    "textTab": "Texto",
-    "contactTab": "Contacto",
-    "enterUrl": "Ingresa URL",
-    "enterText": "Ingresa Texto",
-    "contactInformation": "Información de Contacto",
-    "websiteUrl": "URL del Sitio Web",
-    "urlPlaceholder": "ejemplo.com o https://ejemplo.com",
-    "urlHelp": "Ingresa una URL de sitio web. Si no incluyes http://, agregaremos https:// automáticamente.",
-    "textContent": "Contenido de Texto",
-    "textPlaceholder": "Ingresa cualquier texto para generar código QR...",
-    "firstName": "Nombre",
-    "firstNamePlaceholder": "Juan",
-    "lastName": "Apellido",
-    "lastNamePlaceholder": "Pérez",
-    "phoneNumber": "Número de Teléfono",
-    "phonePlaceholder": "+1 (555) 123-4567",
-    "emailAddress": "Dirección de Correo",
-    "emailPlaceholder": "juan.perez@ejemplo.com",
-    "organization": "Organización",
-    "organizationPlaceholder": "Nombre de la Empresa",
-    "website": "Sitio Web",
-    "websitePlaceholder": "https://ejemplo.com",
-    "clearAllFields": "Limpiar Todos los Campos",
-    "generatedQrCode": "Código QR Generado",
-    "scanQrCode": "Escanea este código QR con tu dispositivo",
-    "fillFormPrompt": "Completa el formulario para generar tu código QR",
-    "download": "Descargar",
-    "copyData": "Copiar Datos",
-    "copied": "¡Copiado!",
-    "qrCodeData": "Datos del Código QR:",
-    "footerText": "Genera códigos QR al instante • No se almacenan datos • Gratis",
-    "qrCodeAlt": "Código QR Generado"
+    "qrCodeData": "Raw Data:",
+    "footerText": "Private • Minimal • Free",
+    "colors": "Colors",
+    "foreground": "Foreground",
+    "background": "Background",
+    "logo": "Logo",
+    "uploadLogo": "Upload Logo",
+    "removeLogo": "Remove",
+    "history": "Recent",
+    "noHistory": "No recent QR codes",
+    "clearHistory": "Clear History"
   }
 };
 
-const appLocale = '{{APP_LOCALE}}';
 const browserLocale = navigator.languages?.[0] || navigator.language || 'en-US';
-const findMatchingLocale = (locale) => {
-  if (TRANSLATIONS[locale]) return locale;
-  const lang = locale.split('-')[0];
-  const match = Object.keys(TRANSLATIONS).find(key => key.startsWith(lang + '-'));
-  return match || 'en-US';
-};
-const locale = (appLocale !== '{{APP_LOCALE}}') ? findMatchingLocale(appLocale) : findMatchingLocale(browserLocale);
-const t = (key) => TRANSLATIONS[locale]?.[key] || TRANSLATIONS['en-US'][key] || key;
+const t = (key) => TRANSLATIONS["en-US"][key] || key;
 
 const QRCodeGenerator = () => {
   const [activeTab, setActiveTab] = useState('url');
@@ -95,448 +53,340 @@ const QRCodeGenerator = () => {
   const [copied, setCopied] = useState(false);
   const qrContainerRef = useRef(null);
 
-  // Form states for different types
+  // Customization states
+  const [fgColor, setFgColor] = useState('#000000');
+  const [bgColor, setBgColor] = useState('#ffffff');
+  const [logo, setLogo] = useState(null);
+  const [history, setHistory] = useState([]);
+
+  // Form states
   const [urlInput, setUrlInput] = useState('');
   const [textInput, setTextInput] = useState('');
   const [contactInfo, setContactInfo] = useState({
-    firstName: '',
-    lastName: '',
-    phone: '',
-    email: '',
-    organization: '',
-    url: ''
+    firstName: '', lastName: '', phone: '', email: '', organization: '', url: ''
   });
 
-  // QR Code generation using QRious library via CDN
+  // Load history from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('qr_history');
+    if (saved) {
+      try {
+        setHistory(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse history", e);
+      }
+    }
+  }, []);
+
+  // Save history to localStorage
+  useEffect(() => {
+    localStorage.setItem('qr_history', JSON.stringify(history));
+  }, [history]);
+
+  const addToHistory = (data, type) => {
+    if (!data.trim()) return;
+    setHistory(prev => {
+      const filtered = prev.filter(item => item.data !== data);
+      const newItem = { data, type, timestamp: Date.now() };
+      return [newItem, ...filtered].slice(0, 10); // Keep last 10
+    });
+  };
+
   const generateQRCode = async (text) => {
     if (!text.trim()) {
-      if (qrContainerRef.current) {
-        qrContainerRef.current.innerHTML = '';
-      }
+      if (qrContainerRef.current) qrContainerRef.current.innerHTML = '';
       return;
     }
 
-    try {
-      // Load QRious library dynamically
-      if (!window.QRious) {
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js';
-        script.onload = () => {
-          createQR(text);
-        };
-        document.head.appendChild(script);
-      } else {
-        createQR(text);
-      }
-    } catch (error) {
-      console.error('Error loading QR library:', error);
-      // Fallback to Google Charts API
-      generateFallbackQR(text);
+    if (!window.QRious) {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js';
+      script.onload = () => createQR(text);
+      document.head.appendChild(script);
+    } else {
+      createQR(text);
     }
   };
 
   const createQR = (text) => {
     if (!qrContainerRef.current) return;
-
-    try {
-      // Clear previous QR code
-      qrContainerRef.current.innerHTML = '';
-
-      // Create canvas element
-      const canvas = document.createElement('canvas');
-      qrContainerRef.current.appendChild(canvas);
-
-      // Generate QR code
-      const qr = new window.QRious({
-        element: canvas,
-        value: text,
-        size: 300,
-        background: 'white',
-        foreground: 'black',
-        level: 'M'
-      });
-
-      // Style the canvas
-      canvas.className = 'w-full h-auto rounded-xl shadow-lg bg-white';
-      canvas.style.maxWidth = '300px';
-      canvas.style.height = 'auto';
-
-    } catch (error) {
-      console.error('Error creating QR code:', error);
-      generateFallbackQR(text);
-    }
-  };
-
-  const generateFallbackQR = (text) => {
-    if (!qrContainerRef.current) return;
-
-    // Clear previous content
     qrContainerRef.current.innerHTML = '';
+    const canvas = document.createElement('canvas');
+    qrContainerRef.current.appendChild(canvas);
 
-    // Create img element for fallback
-    const img = document.createElement('img');
-    const encodedData = encodeURIComponent(text);
-    img.src = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${encodedData}&choe=UTF-8`;
-    img.alt = t('qrCodeAlt');
-    img.className = 'w-full h-auto rounded-xl shadow-lg bg-white p-4';
-    img.style.maxWidth = '300px';
-    img.style.height = 'auto';
+    const size = 600; // High res internal size
+    const qr = new window.QRious({
+      element: canvas,
+      value: text,
+      size: size,
+      background: bgColor,
+      foreground: fgColor,
+      level: 'H' // Higher error correction for logos
+    });
 
-    // Add error handling for the fallback image
-    img.onerror = () => {
-      // If Google Charts also fails, try QR Server API
-      img.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodedData}&format=png&margin=10`;
-    };
+    canvas.className = 'w-full h-auto border border-gray-100 max-w-[300px] shadow-sm';
 
-    qrContainerRef.current.appendChild(img);
+    if (logo) {
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      img.src = logo;
+      img.onload = () => {
+        const logoSize = size * 0.2;
+        const x = (size - logoSize) / 2;
+        const y = (size - logoSize) / 2;
+        
+        // Draw white background for logo
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(x - 5, y - 5, logoSize + 10, logoSize + 10);
+        
+        // Draw logo
+        ctx.drawImage(img, x, y, logoSize, logoSize);
+      };
+    }
   };
 
   const formatUrl = (url) => {
     if (!url.trim()) return '';
-
-    // Add protocol if missing
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      return 'https://' + url;
-    }
-    return url;
+    return (url.startsWith('http://') || url.startsWith('https://')) ? url : 'https://' + url;
   };
 
-  const generateVCard = (contact) => {
-    const vcard = `BEGIN:VCARD
-VERSION:3.0
-FN:${contact.firstName} ${contact.lastName}
-N:${contact.lastName};${contact.firstName};;;
-ORG:${contact.organization}
-TEL:${contact.phone}
-EMAIL:${contact.email}
-URL:${contact.url}
-END:VCARD`;
-    return vcard;
-  };
+  const generateVCard = (c) => `BEGIN:VCARD\nVERSION:3.0\nFN:${c.firstName} ${c.lastName}\nN:${c.lastName};${c.firstName};;;\nORG:${c.organization}\nTEL:${c.phone}\nEMAIL:${c.email}\nURL:${c.url}\nEND:VCARD`;
 
   useEffect(() => {
     let data = '';
-
-    switch (activeTab) {
-      case 'url':
-        data = formatUrl(urlInput);
-        break;
-      case 'text':
-        data = textInput;
-        break;
-      case 'contact':
-        if (contactInfo.firstName || contactInfo.lastName || contactInfo.phone || contactInfo.email) {
-          data = generateVCard(contactInfo);
-        }
-        break;
-      default:
-        data = '';
+    let type = activeTab;
+    if (activeTab === 'url') data = formatUrl(urlInput);
+    else if (activeTab === 'text') data = textInput;
+    else if (activeTab === 'contact' && (contactInfo.firstName || contactInfo.phone)) data = generateVCard(contactInfo);
+    
+    if (data !== qrData) {
+      setQrData(data);
+      if (data) addToHistory(data, type);
     }
-
-    setQrData(data);
     generateQRCode(data);
-  }, [activeTab, urlInput, textInput, contactInfo]);
+  }, [activeTab, urlInput, textInput, contactInfo, fgColor, bgColor, logo]);
+
+  const handleLogoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => setLogo(event.target.result);
+      reader.readAsDataURL(file);
+    }
+  };
 
   const downloadQRCode = () => {
-    if (!qrData) return;
-
     const canvas = qrContainerRef.current?.querySelector('canvas');
-    const img = qrContainerRef.current?.querySelector('img');
-
     if (canvas) {
-      // Download from canvas
       const link = document.createElement('a');
-      link.download = `qr-code-${activeTab}.png`;
+      link.download = `qr-${Date.now()}.png`;
       link.href = canvas.toDataURL();
-      link.click();
-    } else if (img) {
-      // Download from image
-      const link = document.createElement('a');
-      link.download = `qr-code-${activeTab}.png`;
-      link.href = img.src;
       link.click();
     }
   };
 
   const copyToClipboard = async () => {
     if (qrData) {
-      try {
-        await navigator.clipboard.writeText(qrData);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch (err) {
-        console.error('Failed to copy text: ', err);
-      }
+      await navigator.clipboard.writeText(qrData);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
-  const resetForm = () => {
-    setUrlInput('');
-    setTextInput('');
-    setContactInfo({
-      firstName: '',
-      lastName: '',
-      phone: '',
-      email: '',
-      organization: '',
-      url: ''
-    });
-    setQrData('');
-    if (qrContainerRef.current) {
-      qrContainerRef.current.innerHTML = '';
-    }
+  const resetAll = () => {
+    setUrlInput(''); setTextInput(''); setLogo(null);
+    setContactInfo({ firstName: '', lastName: '', phone: '', email: '', organization: '', url: '' });
+    setFgColor('#000000'); setBgColor('#ffffff');
   };
 
   const tabs = [
     { id: 'url', label: t('urlTab'), icon: Link },
     { id: 'text', label: t('textTab'), icon: MessageSquare },
-    { id: 'contact', label: t('contactTab'), icon: User }
+    { id: 'contact', label: t('contactTab'), icon: User },
+    { id: 'history', label: t('historyTab'), icon: History }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 p-4 pt-24">
-      <div className="developer-credit">
-        By Pranav Anuvadia
-      </div>
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl mb-4">
-            <QrCode className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-2">
-            {t('appTitle')}
-          </h1>
-          <p className="text-gray-600 text-lg">{t('appDescription')}</p>
-        </div>
+    <div className="min-h-screen bg-white text-gray-900 font-sans selection:bg-gray-100">
+      <div className="max-w-5xl mx-auto px-6 py-12 md:py-20">
+        <header className="mb-16 border-l-4 border-black pl-6">
+          <h1 className="text-5xl font-black tracking-tight mb-2 uppercase italic">{t('appTitle')}</h1>
+          <p className="text-gray-500 font-medium">{t('appDescription')}</p>
+        </header>
 
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
-          {/* Tab Navigation */}
-          <div className="border-b border-gray-200">
-            <nav className="flex">
-              {tabs.map((tab) => {
-                const IconComponent = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 text-sm font-medium transition-all duration-200 ${activeTab === tab.id
-                      ? 'text-purple-600 border-b-2 border-purple-600 bg-purple-50'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                      }`}
-                  >
-                    <IconComponent className="w-4 h-4" />
-                    {tab.label}
-                  </button>
-                );
-              })}
+        <div className="grid lg:grid-cols-[1fr_350px] gap-16 items-start">
+          <section className="space-y-12">
+            <nav className="flex gap-8 border-b border-gray-100 pb-4">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`pb-2 text-sm font-bold uppercase tracking-widest transition-colors ${activeTab === tab.id ? 'text-black border-b-2 border-black' : 'text-gray-300 hover:text-gray-600'}`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </nav>
-          </div>
 
-          <div className="p-8">
-            <div className="grid lg:grid-cols-2 gap-8">
-              {/* Input Section */}
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-                  {activeTab === 'url' && t('enterUrl')}
-                  {activeTab === 'text' && t('enterText')}
-                  {activeTab === 'contact' && t('contactInformation')}
-                </h2>
+            <div className="min-h-[300px]">
+              {activeTab === 'url' && (
+                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <label className="text-xs font-black uppercase tracking-tighter text-gray-400">{t('enterUrl')}</label>
+                  <input
+                    type="url"
+                    value={urlInput}
+                    onChange={(e) => setUrlInput(e.target.value)}
+                    placeholder={t('urlPlaceholder')}
+                    className="w-full text-2xl font-light border-b-2 border-gray-100 focus:border-black outline-none py-2 transition-all"
+                  />
+                  <p className="text-[10px] text-gray-400 font-medium italic">{t('urlHelp')}</p>
+                </div>
+              )}
 
-                {/* URL Input */}
-                {activeTab === 'url' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t('websiteUrl')}
-                    </label>
-                    <input
-                      type="url"
-                      value={urlInput}
-                      onChange={(e) => setUrlInput(e.target.value)}
-                      placeholder={t('urlPlaceholder')}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      {t('urlHelp')}
-                    </p>
-                  </div>
-                )}
+              {activeTab === 'text' && (
+                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <label className="text-xs font-black uppercase tracking-tighter text-gray-400">{t('enterText')}</label>
+                  <textarea
+                    value={textInput}
+                    onChange={(e) => setTextInput(e.target.value)}
+                    placeholder={t('textPlaceholder')}
+                    rows={4}
+                    className="w-full text-2xl font-light border-b-2 border-gray-100 focus:border-black outline-none py-2 transition-all resize-none"
+                  />
+                </div>
+              )}
 
-                {/* Text Input */}
-                {activeTab === 'text' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t('textContent')}
-                    </label>
-                    <textarea
-                      value={textInput}
-                      onChange={(e) => setTextInput(e.target.value)}
-                      placeholder={t('textPlaceholder')}
-                      rows={4}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 resize-none"
-                    />
-                  </div>
-                )}
-
-                {/* Contact Input */}
-                {activeTab === 'contact' && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          {t('firstName')}
-                        </label>
-                        <input
-                          type="text"
-                          value={contactInfo.firstName}
-                          onChange={(e) => setContactInfo({ ...contactInfo, firstName: e.target.value })}
-                          placeholder={t('firstNamePlaceholder')}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          {t('lastName')}
-                        </label>
-                        <input
-                          type="text"
-                          value={contactInfo.lastName}
-                          onChange={(e) => setContactInfo({ ...contactInfo, lastName: e.target.value })}
-                          placeholder={t('lastNamePlaceholder')}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t('phoneNumber')}
-                      </label>
-                      <input
-                        type="tel"
-                        value={contactInfo.phone}
-                        onChange={(e) => setContactInfo({ ...contactInfo, phone: e.target.value })}
-                        placeholder={t('phonePlaceholder')}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t('emailAddress')}
-                      </label>
-                      <input
-                        type="email"
-                        value={contactInfo.email}
-                        onChange={(e) => setContactInfo({ ...contactInfo, email: e.target.value })}
-                        placeholder={t('emailPlaceholder')}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t('organization')}
-                      </label>
+              {activeTab === 'contact' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  {[
+                    { key: 'firstName', label: t('firstName') },
+                    { key: 'lastName', label: t('lastName') },
+                    { key: 'phone', label: t('phoneNumber') },
+                    { key: 'email', label: t('emailAddress') },
+                    { key: 'organization', label: t('organization') },
+                    { key: 'url', label: t('website') }
+                  ].map(field => (
+                    <div key={field.key} className="space-y-2">
+                      <label className="text-xs font-black uppercase tracking-tighter text-gray-400">{field.label}</label>
                       <input
                         type="text"
-                        value={contactInfo.organization}
-                        onChange={(e) => setContactInfo({ ...contactInfo, organization: e.target.value })}
-                        placeholder={t('organizationPlaceholder')}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                        value={contactInfo[field.key]}
+                        onChange={(e) => setContactInfo({ ...contactInfo, [field.key]: e.target.value })}
+                        className="w-full text-lg border-b border-gray-100 focus:border-black outline-none py-1 transition-all"
                       />
                     </div>
+                  ))}
+                </div>
+              )}
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t('website')}
-                      </label>
-                      <input
-                        type="url"
-                        value={contactInfo.url}
-                        onChange={(e) => setContactInfo({ ...contactInfo, url: e.target.value })}
-                        placeholder={t('websitePlaceholder')}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                      />
-                    </div>
+              {activeTab === 'history' && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-black uppercase tracking-tighter text-gray-400">{t('history')}</label>
+                    {history.length > 0 && (
+                      <button onClick={() => setHistory([])} className="text-[10px] font-bold uppercase text-red-400 hover:text-red-600 flex items-center gap-1">
+                        <Trash2 size={10} /> {t('clearHistory')}
+                      </button>
+                    )}
                   </div>
-                )}
+                  <div className="space-y-3">
+                    {history.length === 0 ? (
+                      <p className="text-gray-300 italic">{t('noHistory')}</p>
+                    ) : (
+                      history.map((item, idx) => (
+                        <div key={idx} onClick={() => {
+                          if (item.type === 'url') { setActiveTab('url'); setUrlInput(item.data); }
+                          else if (item.type === 'text') { setActiveTab('text'); setTextInput(item.data); }
+                        }} className="group flex items-center justify-between p-4 border border-gray-100 hover:border-black cursor-pointer transition-all">
+                          <div className="overflow-hidden">
+                            <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1">{item.type}</p>
+                            <p className="text-sm truncate font-medium">{item.data}</p>
+                          </div>
+                          <span className="text-[10px] text-gray-300 group-hover:text-black font-bold whitespace-nowrap ml-4">LOAD →</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
-                <button
-                  onClick={resetForm}
-                  className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all duration-200 font-medium"
-                >
-                  {t('clearAllFields')}
-                </button>
+            <div className="pt-12 border-t border-gray-100 grid md:grid-cols-2 gap-12">
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Palette size={16} className="text-gray-400" />
+                  <h3 className="text-xs font-black uppercase tracking-widest">{t('colors')}</h3>
+                </div>
+                <div className="flex gap-8">
+                  <div className="space-y-3">
+                    <label className="block text-[10px] font-bold uppercase text-gray-400">{t('foreground')}</label>
+                    <input type="color" value={fgColor} onChange={(e) => setFgColor(e.target.value)} className="w-12 h-12 block border-none cursor-pointer bg-transparent" />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="block text-[10px] font-bold uppercase text-gray-400">{t('background')}</label>
+                    <input type="color" value={bgColor} onChange={(e) => setBgColor(e.target.value)} className="w-12 h-12 block border-none cursor-pointer bg-transparent" />
+                  </div>
+                </div>
               </div>
 
-              {/* QR Code Display Section */}
-              <div className="flex flex-col items-center space-y-6">
-                <h2 className="text-2xl font-semibold text-gray-800">{t('generatedQrCode')}</h2>
-
-                <div className="bg-gray-50 rounded-2xl p-8 w-full max-w-sm">
-                  {qrData ? (
-                    <div className="text-center">
-                      <div ref={qrContainerRef} className="flex justify-center">
-                        {/* QR code will be dynamically inserted here */}
-                      </div>
-                      <p className="text-sm text-gray-600 mt-4">
-                        {t('scanQrCode')}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="text-center py-16">
-                      <QrCode className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500">
-                        {t('fillFormPrompt')}
-                      </p>
-                    </div>
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <ImageIcon size={16} className="text-gray-400" />
+                  <h3 className="text-xs font-black uppercase tracking-widest">{t('logo')}</h3>
+                </div>
+                <div className="flex items-center gap-4">
+                  <label className="cursor-pointer bg-black text-white px-6 py-3 text-xs font-black uppercase tracking-widest hover:bg-gray-800 transition-colors">
+                    {t('uploadLogo')}
+                    <input type="file" onChange={handleLogoUpload} className="hidden" accept="image/*" />
+                  </label>
+                  {logo && (
+                    <button onClick={() => setLogo(null)} className="text-[10px] font-bold uppercase text-red-500 hover:text-red-700">
+                      {t('removeLogo')}
+                    </button>
                   )}
                 </div>
+              </div>
+            </div>
+          </section>
 
-                {qrData && (
-                  <div className="flex gap-4 w-full max-w-sm">
-                    <button
-                      onClick={downloadQRCode}
-                      className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-200 font-medium shadow-lg"
-                    >
-                      <Download className="w-4 h-4" />
-                      {t('download')}
-                    </button>
-
-                    <button
-                      onClick={copyToClipboard}
-                      className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all duration-200 font-medium"
-                    >
-                      {copied ? (
-                        <>
-                          <Check className="w-4 h-4 text-green-600" />
-                          {t('copied')}
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-4 h-4" />
-                          {t('copyData')}
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
-
-                {qrData && (
-                  <div className="w-full max-w-sm">
-                    <h3 className="text-sm font-medium text-gray-700 mb-2">{t('qrCodeData')}</h3>
-                    <div className="bg-gray-100 rounded-lg p-3 text-xs text-gray-600 max-h-32 overflow-y-auto">
-                      <pre className="whitespace-pre-wrap break-words">{qrData}</pre>
-                    </div>
+          <aside className="lg:sticky lg:top-20 space-y-8">
+            <div className="border-4 border-black p-2 bg-white">
+              <div className="aspect-square bg-gray-50 flex items-center justify-center overflow-hidden">
+                {qrData ? (
+                  <div ref={qrContainerRef} className="w-full h-full flex items-center justify-center p-4 bg-white" />
+                ) : (
+                  <div className="text-center p-8">
+                    <QrCode className="w-12 h-12 text-gray-200 mx-auto mb-4" />
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-300">{t('fillFormPrompt')}</p>
                   </div>
                 )}
               </div>
             </div>
-          </div>
-        </div>
 
-        <div className="text-center mt-8 text-gray-500 text-sm">
-          <p>{t('footerText')}</p>
+            {qrData && (
+              <div className="space-y-3">
+                <button
+                  onClick={downloadQRCode}
+                  className="w-full bg-black text-white py-4 text-xs font-black uppercase tracking-widest hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Download size={14} /> {t('download')}
+                </button>
+                <button
+                  onClick={copyToClipboard}
+                  className="w-full border-2 border-black py-4 text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                >
+                  {copied ? <><Check size={14} /> {t('copied')}</> : <><Copy size={14} /> {t('copyData')}</>}
+                </button>
+                <button onClick={resetAll} className="w-full py-2 text-[10px] font-bold uppercase text-gray-400 hover:text-black transition-colors">
+                  {t('clearAllFields')}
+                </button>
+              </div>
+            )}
+
+            <footer className="pt-8 text-center border-t border-gray-100">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-300">{t('footerText')}</p>
+            </footer>
+          </aside>
         </div>
       </div>
     </div>
