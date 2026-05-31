@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { QrCode, Link, MessageSquare, User, Download, Copy, Check, History, Palette, Image as ImageIcon, Trash2, X, RefreshCw, ChevronRight, Hash } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { QrCode, Link, MessageSquare, User, Download, Copy, Check, History, Palette, Image as ImageIcon, Trash2, X, RefreshCw, ChevronRight, Hash, ChevronDown } from 'lucide-react';
 
 const TRANSLATIONS = {
   "en-US": {
@@ -47,9 +47,130 @@ const TRANSLATIONS = {
 const t = (key) => TRANSLATIONS["en-US"][key] || key;
 
 const PRESET_COLORS = [
-  '#000000', '#0F172A', '#1E40AF', '#B91C1C', '#047857', 
-  '#7C3AED', '#DB2777', '#EA580C', '#FFFFFF', '#F1F5F9'
+  '#000000', '#0F172A', '#1E293B', '#334155', '#475569',
+  '#FFFFFF', '#F8FAFC', '#F1F5F9', '#E2E8F0', '#CBD5E1',
+  '#2563EB', '#3B82F6', '#06B6D4', '#10B981', '#84CC16',
+  '#EAB308', '#F59E0B', '#EF4444', '#EC4899', '#8B5CF6'
 ];
+
+// Helper functions for color conversion
+const hexToHsl = (hex) => {
+  let r = parseInt(hex.slice(1, 3), 16) / 255;
+  let g = parseInt(hex.slice(3, 5), 16) / 255;
+  let b = parseInt(hex.slice(5, 7), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h, s, l = (max + min) / 2;
+  if (max === min) h = s = 0;
+  else {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+  return { h: h * 360, s: s * 100, l: l * 100 };
+};
+
+const hslToHex = (h, s, l) => {
+  l /= 100;
+  const a = s * Math.min(l, 1 - l) / 100;
+  const f = n => {
+    const k = (n + h / 30) % 12;
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+};
+
+const CustomColorWheel = ({ color, onChange }) => {
+  const [hsl, setHsl] = useState(() => hexToHsl(color));
+  const satRectRef = useRef(null);
+  const hueRectRef = useRef(null);
+
+  useEffect(() => {
+    const newHsl = hexToHsl(color);
+    if (Math.abs(newHsl.h - hsl.h) > 1 || Math.abs(newHsl.s - hsl.s) > 1 || Math.abs(newHsl.l - hsl.l) > 1) {
+      setHsl(newHsl);
+    }
+  }, [color]);
+
+  const handleSatMouseDown = (e) => {
+    const move = (event) => {
+      const rect = satRectRef.current.getBoundingClientRect();
+      const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+      const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
+      const newS = x * 100;
+      const newL = (1 - y) * 100;
+      setHsl(prev => {
+        const updated = { ...prev, s: newS, l: newL };
+        onChange(hslToHex(updated.h, updated.s, updated.l));
+        return updated;
+      });
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+    move(e);
+  };
+
+  const handleHueMouseDown = (e) => {
+    const move = (event) => {
+      const rect = hueRectRef.current.getBoundingClientRect();
+      const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+      const newH = x * 360;
+      setHsl(prev => {
+        const updated = { ...prev, h: newH };
+        onChange(hslToHex(updated.h, updated.s, updated.l));
+        return updated;
+      });
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+    move(e);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Saturation/Lightness Box */}
+      <div 
+        ref={satRectRef}
+        onMouseDown={handleSatMouseDown}
+        className="relative w-full aspect-video rounded-xl cursor-crosshair overflow-hidden border border-slate-200"
+        style={{ backgroundColor: `hsl(${hsl.h}, 100%, 50%)` }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-white to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent" />
+        <div 
+          className="absolute w-4 h-4 border-2 border-white rounded-full shadow-md -translate-x-1/2 translate-y-1/2 pointer-events-none"
+          style={{ left: `${hsl.s}%`, bottom: `${hsl.l}%` }}
+        />
+      </div>
+
+      {/* Hue Slider */}
+      <div 
+        ref={hueRectRef}
+        onMouseDown={handleHueMouseDown}
+        className="relative h-6 w-full rounded-full cursor-pointer shadow-inner"
+        style={{ background: 'linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%)' }}
+      >
+        <div 
+          className="absolute w-6 h-6 bg-white border-2 border-slate-900 rounded-full shadow-md -translate-x-1/2 pointer-events-none top-0"
+          style={{ left: `${(hsl.h / 360) * 100}%` }}
+        />
+      </div>
+    </div>
+  );
+};
 
 const ColorPicker = ({ label, color, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -61,9 +182,9 @@ const ColorPicker = ({ label, color, onChange }) => {
         setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
+    if (isOpen) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [isOpen]);
 
   return (
     <div className="flex-1 space-y-3" ref={containerRef}>
@@ -77,46 +198,84 @@ const ColorPicker = ({ label, color, onChange }) => {
             className="w-8 h-8 rounded-lg shadow-inner border border-slate-100" 
             style={{ backgroundColor: color }}
           />
-          <div className="flex-1 text-left">
+          <div className="flex-1 text-left flex items-center justify-between">
             <span className="text-xs font-mono font-bold text-slate-600 group-hover:text-slate-900">{color.toUpperCase()}</span>
+            <ChevronDown size={14} className={`text-slate-300 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           </div>
         </button>
 
         {isOpen && (
-          <div className="absolute z-50 top-full mt-3 left-0 w-64 bg-white rounded-2xl border border-slate-200 shadow-2xl p-4 animate-in zoom-in duration-200 origin-top-left">
-            <div className="grid grid-cols-5 gap-2 mb-4">
-              {PRESET_COLORS.map((pColor) => (
-                <button
-                  key={pColor}
-                  onClick={() => { onChange(pColor); setIsOpen(false); }}
-                  className={`w-full aspect-square rounded-lg border-2 transition-all ${color === pColor ? 'border-slate-900 scale-110 shadow-md' : 'border-transparent hover:scale-105'}`}
-                  style={{ backgroundColor: pColor }}
-                />
-              ))}
-            </div>
-            
-            <div className="pt-4 border-t border-slate-100">
-              <div className="flex items-center gap-2 mb-2">
-                <Hash size={12} className="text-slate-400" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Custom Hex</span>
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={color}
-                  onChange={(e) => onChange(e.target.value)}
-                  className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono focus:border-slate-900 outline-none"
-                  placeholder="#000000"
-                />
-                <input
-                  type="color"
-                  value={color}
-                  onChange={(e) => onChange(e.target.value)}
-                  className="w-10 h-10 p-0 border-none bg-transparent cursor-pointer"
-                />
+          <>
+            {/* Desktop Popover */}
+            <div className="hidden md:block absolute z-50 top-full mt-3 left-0 w-80 bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 animate-in zoom-in duration-200 origin-top-left">
+              <CustomColorWheel color={color} onChange={onChange} />
+              
+              <div className="mt-6 pt-6 border-t border-slate-100">
+                <div className="grid grid-cols-5 gap-2 mb-6">
+                  {PRESET_COLORS.map((pColor) => (
+                    <button
+                      key={pColor}
+                      onClick={() => onChange(pColor)}
+                      className={`w-full aspect-square rounded-lg border-2 transition-all ${color === pColor ? 'border-slate-900 scale-110 shadow-md' : 'border-transparent hover:scale-105'}`}
+                      style={{ backgroundColor: pColor }}
+                    />
+                  ))}
+                </div>
+                <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+                  <Hash size={14} className="text-slate-400" />
+                  <input
+                    type="text"
+                    value={color}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="flex-1 bg-transparent text-sm font-mono font-bold focus:outline-none"
+                    placeholder="#000000"
+                  />
+                </div>
               </div>
             </div>
-          </div>
+
+            {/* Mobile Bottom Sheet */}
+            <div className="md:hidden">
+              <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]" onClick={() => setIsOpen(false)} />
+              <div className="fixed bottom-0 left-0 right-0 bg-white z-[101] rounded-t-[2.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom duration-300">
+                <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-8" />
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-lg font-bold text-slate-900">{label}</h3>
+                  <button onClick={() => setIsOpen(false)} className="p-2 bg-slate-100 rounded-full text-slate-500">
+                    <X size={20} />
+                  </button>
+                </div>
+                
+                <CustomColorWheel color={color} onChange={onChange} />
+
+                <div className="mt-8">
+                  <div className="grid grid-cols-5 gap-3 mb-8">
+                    {PRESET_COLORS.map((pColor) => (
+                      <button
+                        key={pColor}
+                        onClick={() => onChange(pColor)}
+                        className={`w-full aspect-square rounded-xl border-2 transition-all ${color === pColor ? 'border-slate-900 scale-110 shadow-md' : 'border-transparent'}`}
+                        style={{ backgroundColor: pColor }}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 mb-6">
+                    <Hash size={18} className="text-slate-400" />
+                    <input
+                      type="text"
+                      value={color}
+                      onChange={(e) => onChange(e.target.value)}
+                      className="flex-1 bg-transparent text-lg font-mono font-bold focus:outline-none"
+                      placeholder="#000000"
+                    />
+                  </div>
+                  <button onClick={() => setIsOpen(false)} className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold uppercase tracking-widest">
+                    Done
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </div>
